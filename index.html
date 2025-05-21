@@ -80,7 +80,15 @@
                 input.placeholder = "Crew ID";
                 input.maxLength = 8;
                 input.value = info.crew || "";
-                input.oninput = () => update(ref(db, "beds/" + key), { crew: input.value });
+                
+let timer;
+input.oninput = () => {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    update(ref(db, "beds/" + key), { crew: input.value });
+  }, 500);
+};
+
                 div.appendChild(document.createElement("br"));
                 div.appendChild(input);
                 aptLabel.appendChild(div);
