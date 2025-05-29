@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Layover Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
+    header {
+      position: sticky; top: 0;
+      background: #333; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+    header h1 { margin: 0; font-size: 18px; }
+    header .datetime { font-size: 14px; }
+    header button { background: #f44336; border: none; color: white; padding: 6px 12px; cursor: pointer; }
+    .controls { display: flex; justify-content: space-between; align-items: center; margin: 10px 20px; }
+    .building { margin: 20px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    .building h2 { margin: 0 0 10px; }
+    .floor { margin-bottom: 20px; }
+    .apartment-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .apartment { border: 1px solid #ccc; padding: 10px; flex: 1; min-width: 200px; border-radius: 5px; background: #fafafa; }
+    .room { display: flex; flex-direction: column; margin-top: 10px; }
+    .room-label { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    .bed-container { display: flex; justify-content: space-between; }
+    .bed { flex: 1; margin: 0 5px; background: #e0ffe0; padding: 5px; border-radius: 5px; }
+    .bed.occupied { background: #ffdddd; }
+    input, select {
+      width: 100%; margin: 2px 0; padding: 4px; font-size: 12px;
+    }
+    .stats { margin: 10px 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Layover Dashboard - Housing and Welfare</h1>
+    <div class="datetime" id="datetime"></div>
+    <button onclick="logout()">Logout</button>
+  </header>
+
+  <div class="controls">
+    <div>
+      <label for="filter">Filter by Building:</label>
+      <select id="filter" onchange="renderDashboard()">
+        <option value="All">All</option>
+        <option value="Building 1">Building 1</option>
+        <option value="Building 2">Building 2</option>
+        <option value="Building 14">Building 14</option>
+        <option value="Building 15">Building 15</option>
+      </select>
+    </div>
+    <div>
+      <button onclick="printReport()" style="padding: 6px 12px; background: #2196F3; color: white; border: none; cursor: pointer;">🖨️ طباعة التقرير</button>
+      <button onclick="downloadPDF()" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; cursor: pointer;">📄 تصدير PDF</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div id="content">Loading...</div>
+
+  <script>
+    const user = localStorage.getItem("user");
+    if (!user) location.href = "login.html";
+
+    const data = {
+      "Building 1": [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["J", "K", "L", "I"]],
+      "Building 2": [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["J", "K", "L", "I"]],
+      "Building 14": [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["J", "K", "L", "I"]],
+      "Building 15": [["A", "B", "C", "D"], ["E", "F", "G", "H"], ["J", "K", "L", "I"]]
+    };
+
+    function logout() {
+      localStorage.clear();
+      location.href = "login.html";
+    }
+
+    function printReport() {
+      window.print();
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById("content");
+      const opt = {
+        margin:       0.5,
+        filename:     'layover-dashboard-report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    function renderDashboard() {
+      const filter = document.getElementById("filter").value;
+      const content = document.getElementById("content");
+      const stats = document.getElementById("stats");
+      content.innerHTML = "";
+
+      let occupiedCount = 0;
+      let vacantCount = 0;
+
+      for (const [building, floors] of Object.entries(data)) {
+        if (filter !== "All" && building !== filter) continue;
+
+        const buildingDiv = document.createElement("div");
+        buildingDiv.className = "building";
+        buildingDiv.innerHTML = `<h2>${building}</h2>`;
+
+        floors.forEach((floor, i) => {
+          const floorDiv = document.createElement("div");
+          floorDiv.className = "floor";
+          const aptRow = document.createElement("div");
+          aptRow.className = "apartment-row";
+
+          floor.forEach(apt => {
+            const aptDiv = document.createElement("div");
+            aptDiv.className = "apartment";
+            aptDiv.innerHTML = `<strong>Apartment ${apt}</strong>`;
+
+            ["S", "D"].forEach(room => {
+              const roomDiv = document.createElement("div");
+              roomDiv.className = "room";
+              const roomLabel = document.createElement("div");
+              roomLabel.className = "room-label";
+              roomLabel.textContent = `Room ${room}`;
+              roomDiv.appendChild(roomLabel);
+
+              const bedRow = document.createElement("div");
+              bedRow.className = "bed-container";
+              for (let b = 1; b <= 2; b++) {
+                const bed = document.createElement("div");
+                bed.className = "bed";
+                bed.innerHTML = `
+                  <input type="text" placeholder="Crew ID" />
+                  <input type="text" placeholder="Rank" />
+                  <input type="text" placeholder="Base" />
+                  <input type="date" placeholder="Entry Date" />
+                  <input type="date" placeholder="Exit Date" />
+                `;
+                bed.onclick = () => {
+                  bed.classList.toggle("occupied");
+                  if (bed.classList.contains("occupied")) {
+                    occupiedCount++;
+                    vacantCount--;
+                  } else {
+                    vacantCount++;
+                    occupiedCount--;
+                  }
+                  updateStats(occupiedCount, vacantCount);
+                };
+                bedRow.appendChild(bed);
+                vacantCount++;
+              }
+              roomDiv.appendChild(bedRow);
+              aptDiv.appendChild(roomDiv);
+            });
+            aptRow.appendChild(aptDiv);
+          });
+          floorDiv.appendChild(aptRow);
+          buildingDiv.appendChild(floorDiv);
+        });
+        content.appendChild(buildingDiv);
+      }
+      updateStats(occupiedCount, vacantCount);
+    }
+
+    function updateStats(occupied, vacant) {
+      const stats = document.getElementById("stats");
+      stats.innerText = `Occupied Beds: ${occupied} | Vacant Beds: ${vacant} | Total Beds: ${occupied + vacant}`;
+    }
+
+    function updateDateTime() {
+      const dt = new Date().toLocaleString();
+      document.getElementById("datetime").innerText = dt;
+    }
+
+    setInterval(updateDateTime, 1000);
+    renderDashboard();
+  </script>
+</body>
+</html>
