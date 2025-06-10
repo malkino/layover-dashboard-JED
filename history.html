@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Modification History</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    h2 { color: green; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; font-size: 14px; }
+    th { background: #eee; }
+  </style>
+</head>
+<body>
+  <h2>Modification History</h2>
+  <table id="historyTable">
+    <thead>
+      <tr>
+        <th>Building</th>
+        <th>Apartment</th>
+        <th>Room</th>
+        <th>Bed</th>
+        <th>Crew ID</th>
+        <th>Rank</th>
+        <th>Base</th>
+        <th>Entry</th>
+        <th>Exit</th>
+        <th>Note</th>
+        <th>Modified By</th>
+        <th>Modified At</th>
+      </tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+
+  <script>
+    const { initializeApp } = window.firebase;
+    const { getDatabase, ref, onValue } = window.firebase;
+    const { getAuth, onAuthStateChanged } = window.firebase;
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCr4bOp9yTBb8rAxMhrvI-B4NuLklv3Cqs",
+      authDomain: "layover-dashboard.firebaseapp.com",
+      databaseURL: "https://layover-dashboard-default-rtdb.firebaseio.com",
+      projectId: "layover-dashboard",
+      storageBucket: "layover-dashboard.appspot.com",
+      messagingSenderId: "507835036271",
+      appId: "1:507835036271:web:6b29e7d79c656d5ec1939a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, user => {
+      if (user && user.email === "ana-malkino@hotmail.com") {
+        loadHistory();
+      } else {
+        alert("Access denied. Admins only.");
+        window.location.href = "/";
+      }
+    });
+
+    function loadHistory() {
+      const historyRef = ref(db, "history");
+      onValue(historyRef, snap => {
+        const data = snap.val();
+        const tbody = document.getElementById("historyBody");
+        tbody.innerHTML = "";
+        for (let b in data) {
+          for (let a in data[b]) {
+            for (let r in data[b][a]) {
+              for (let bed in data[b][a][r]) {
+                const records = data[b][a][r][bed];
+                for (let key in records) {
+                  const entry = records[key];
+                  const row = document.createElement("tr");
+                  row.innerHTML = `
+                    <td>${b}</td>
+                    <td>${a}</td>
+                    <td>${r}</td>
+                    <td>${bed}</td>
+                    <td>${entry.crewId || ""}</td>
+                    <td>${entry.rank || ""}</td>
+                    <td>${entry.base || ""}</td>
+                    <td>${entry.entry || ""}</td>
+                    <td>${entry.exit || ""}</td>
+                    <td>${entry.note || ""}</td>
+                    <td>${entry.modifiedBy || ""}</td>
+                    <td>${new Date(entry.modifiedAt).toLocaleString("en-GB")}</td>
+                  `;
+                  tbody.appendChild(row);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
